@@ -1,37 +1,35 @@
-import { Component } from '@angular/core';
+import { Component, ViewChild } from '@angular/core';
 import { NavController, NavParams } from 'ionic-angular';
+import * as L from 'leaflet'
 
 @Component({
   selector: 'page-map',
   templateUrl: 'map.html'
 })
 export class MapPage {
-  selectedItem: any;
-  icons: string[];
-  items: Array<{title: string, note: string, icon: string}>;
+  @ViewChild('map') mapContainer
 
-  constructor(public navCtrl: NavController, public navParams: NavParams) {
-    // If we navigated to this page, we will have an item available as a nav param
-    this.selectedItem = navParams.get('item');
+  center: L.PointTuple
+  zoom: number
+  map: L.Map
 
-    // Let's populate this page with some filler content for funzies
-    this.icons = ['flask', 'wifi', 'beer', 'football', 'basketball', 'paper-plane',
-    'american-football', 'boat', 'bluetooth', 'build'];
-
-    this.items = [];
-    for (let i = 1; i < 11; i++) {
-      this.items.push({
-        title: 'Item ' + i,
-        note: 'This is item #' + i,
-        icon: this.icons[Math.floor(Math.random() * this.icons.length)]
-      });
-    }
+  ionViewDidLoad() {
+    this.center = [110.712246, -7.614529]; // Pulau Jawa
+    this.zoom = 7
+    this.initMap()
   }
 
-  itemTapped(event, item) {
-    // That's right, we're pushing to ourselves!
-    this.navCtrl.push(MapPage, {
-      item: item
-    });
+  constructor(public navCtrl: NavController, public navParams: NavParams) {
+
+  }
+
+  initMap() {
+    this.map = L.map(this.mapContainer.nativeElement, {
+      center: this.center,
+      zoom: this.zoom,
+      layers: [
+        L.tileLayer("http://stamen-tiles-{s}.a.ssl.fastly.net/watercolor/{z}/{x}/{y}.png")
+      ]
+    })
   }
 }
