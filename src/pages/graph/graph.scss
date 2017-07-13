@@ -1,6 +1,16 @@
 page-graph {
     #graph {
         height: 100%;
-        width: 100%
+        width: 100%;
+
+        .links line {
+            stroke: #999;
+            stroke-opacity: 0.7;
+        }
+
+        .nodes circle {
+            stroke: #fff;
+            stroke-width: 1.5px;
+        }
     }
 }

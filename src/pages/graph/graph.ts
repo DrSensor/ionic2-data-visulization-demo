@@ -1,5 +1,5 @@
 import { Component, ViewChild } from '@angular/core';
-import { NavController } from 'ionic-angular';
+import { NavController, Platform } from 'ionic-angular';
 import * as d3 from "d3";
 
 @Component({
@@ -9,41 +9,120 @@ import * as d3 from "d3";
 export class GraphPage {
   @ViewChild('graph') graphContainer
 
+  platform: Platform
+  nodes: any[]
+  links: any[]
+  width: number = window.innerWidth
+  height: number = window.innerHeight
+  margin: any = {
+    top: 20, 
+    right: 20, 
+    bottom: 30, 
+    left: 40
+  }
+
+  x: any
+  y: any
+  graph: any
+  svg: any
+
   ionViewDidLoad() {
-    this.initD3()
+    this.platform.ready().then(() => {
+      this.width = this.platform.width() - this.margin.left - this.margin.right
+      this.height = this.platform.height() - this.margin.top - this.margin.bottom
+    })
+
+    this.nodes = d3.range(1000).map(function(i) {
+      return {
+        index: i
+      }
+    })
+
+    this.links = d3.range(this.nodes.length - 1).map(function(i) {
+      return {
+        source: Math.floor(Math.sqrt(i)),
+        target: i + 1
+      }
+    })
+    this.initGraph()
   }
 
-  constructor(public navCtrl: NavController) {
-
+  constructor(navCtrl: NavController, platform: Platform) {
+    this.platform = platform
   }
 
-  initD3() {
-    var chart = d3.select(this.graphContainer.nativeElement)
-      .append("svg")
-      .attr("width", 100)
-      .attr("height", 100)
-      .append("g");
+  initGraph() {    
+    this.svg = d3.select('#graph').append('svg')
+      .attr('height', '100%')
+      .attr('width', '100%')
+      .attr('viewBox','0 0 '
+                        +Math.min(window.innerWidth,window.innerHeight)
+                        +' '
+                        +Math.max(window.innerWidth,window.innerHeight))
 
-    var rows = [
-      { x: 1, y: 1 },
-      { x: 2, y: 2 },
-      { x: 3, y: 3 },
-    ];
+    this.graph = this.svg.attr("preserveAspectRatio", "xMidYMid meet")
+            .attr("pointer-events", "all")
+            .append('g')
 
-    var xScale = d3.scaleLinear()
-      .range([0, 100])
-      .domain([1, 3]);
-    var yScale = d3.scaleLinear()
-      .range([100, 0])
-      .domain([1, 3]);
+    let simulation = d3.forceSimulation(this.nodes)
+      .force("charge", d3.forceManyBody())
+      .force("link", d3.forceLink(this.links))
+      .force("center", d3.forceCenter(window.innerHeight / 2.0, window.innerWidth / 2.0))
+      .force("x", d3.forceX())
+      .force("y", d3.forceY())
+    
+    let link = this.graph.append('g')
+      .attr('class', 'links')
+      .selectAll('line')
+      .data(this.links)
+      .enter()
+      .append('line')
+      .attr('stroke', 'black')
+    
+    let node = this.graph.append('g')
+      .attr('class', 'nodes')
+      .selectAll('circle')
+      .data(this.nodes)
+      .enter()
+      .append('circle')
+      .attr('r', (d) => {
+        return (window.innerHeight+window.innerWidth)/200
+      })
+      .call(
+        d3.drag()
+          .on('start', dragStarted)
+          .on('drag', dragged)
+          .on('end', dragended)
+      )
 
-    chart.selectAll(".dot")
-      .data(rows)
-      .enter().append("circle")
-      .attr("class", "dot")
-      .attr("cx", (row) => { return xScale(row.x) })
-      .attr("cy", (row) => { return yScale(row.y) })
-      .attr("r", 3.5);
+    simulation.nodes(this.nodes)
+      .on("tick", ticked)
+    
+    function ticked() {
+      link.attr("x1", (d) => { return d.source.x })
+          .attr("y1", (d) => { return d.source.y })
+          .attr("x2", (d) => { return d.target.x })
+          .attr("y2", (d) => { return d.target.y })  
+      node.attr('cx', (d) => { return d.x })
+          .attr('cy', (d) => { return d.y })
+    }
+    
+    function dragStarted(d) {
+      if (!d3.event.activate) simulation.alphaTarget(0.3).restart()
+      d.fx = d.x
+      d.fy = d.y
+    }
+
+    function dragged(d) {
+      d.fx = d3.event.x;
+      d.fy = d3.event.y;
+    }
+    
+    function dragended(d) {
+      if (!d3.event.active) simulation.alphaTarget(0);
+      d.fx = null;
+      d.fy = null;
+    }
   }
 
 }
